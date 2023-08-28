@@ -14,7 +14,7 @@ from pycocotools import mask as spa_mask
 import datasets.transforms as T
 
 
-class SPADetection(torchvision.datasets.SPADetection):
+class SPADetection(torchvision.datasets.CocoDetection):
     def __init__(self, img_folder, ann_file, transforms, return_masks):
         super(SPADetection, self).__init__(img_folder, ann_file)
         self._transforms = transforms
