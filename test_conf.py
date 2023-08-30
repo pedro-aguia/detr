@@ -398,7 +398,18 @@ def infer(
             (255, 0, 72),
             (0, 0, 0),
         ]
-        names = ["Bac", "GrB", "GrL", "GrT", "PCoX", "PCoLL", "PCoLR", "PCoM", "PCoH"]
+        names = [
+            "Bac",
+            "GrB",
+            "GrL",
+            "GrT",
+            "PCo_X-uncertain",
+            "PCo_Low-longitudinal",
+            "PCo_Low-random",
+            "PCo_Medium",
+            "PCo_High",
+            "background",
+        ]
         numbers = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
         img = np.array(orig_image)
         img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
@@ -496,7 +507,18 @@ def infer(
                 clases_predecidas,
                 path=conf_out,
                 normalize=True,
-                classes=["Bac", "GrB", "GrL", "GrT", "PCoX", "PCoLL", "PCoLR", "PCoM", "PCoH"],
+                classes=[
+                    "Bac",
+                    "GrB",
+                    "GrL",
+                    "GrT",
+                    "PCo_X-uncertain",
+                    "PCo_Low-longitudinal",
+                    "PCo_Low-random",
+                    "PCo_Medium",
+                    "PCo_High",
+                    "background",
+                ],
                 title="Normalized confusion matrix",
             )
 
