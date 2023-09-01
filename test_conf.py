@@ -489,10 +489,11 @@ def infer(
     if output_path != "":
         myFile = open(os.path.join(output_path, "anotations.csv"), "w", newline="")
         writer = csv.writer(myFile, delimiter=";")
-        if len(detecciones) > 0:
-            writer.writerow(list(detecciones[0].keys()))
-            for dictionary in detecciones:
-                writer.writerow(dictionary.values())
+        print(detecciones)
+        exit()
+        writer.writerow(list(detecciones[0].keys()))
+        for dictionary in detecciones:
+            writer.writerow(dictionary.values())
         myFile.close()
 
         if json_path != "":
