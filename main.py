@@ -257,7 +257,7 @@ def main(args):
                     for name in filenames:
                         torch.save(coco_evaluator.coco_eval["bbox"].eval, output_dir / "eval" / name)
 
-    model = torch.load([output_dir / "checkpoint.pth"], map_location=torch.device("cpu"))
+    model = torch.load(output_dir / "checkpoint.pth", map_location=torch.device("cpu"))
     torch.save(model["model"], [output_dir / "checkpoint.h5"])
 
     total_time = time.time() - start_time
