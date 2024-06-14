@@ -50,34 +50,7 @@ def get_images(in_path):
     return img_files
 
 
-def plot_confusion_matrix_old(cm, classes, path, normalize=False, title="Confusion matrix", cmap=plt.cm.Blues):
-    """
-    This function prints and plots the confusion matrix.
-    Normalization can be applied by setting `normalize=True`.
-    """
-    plt.imshow(cm, interpolation="nearest", cmap=cmap)
-    plt.title(title)
-    plt.colorbar()
-    tick_marks = np.arange(len(classes))
-    plt.xticks(tick_marks, classes, rotation=45)
-    plt.yticks(tick_marks, classes)
-
-    if normalize:
-        cm = np.round(cm.astype("float") / cm.sum(axis=1)[:, np.newaxis], 2)
-        print("Normalized confusion matrix")
-    else:
-        print("Confusion matrix, without normalization")
-
-    print(cm)
-
-    thresh = cm.max() / 2.0
-    for i, j in itertools.product(range(cm.shape[0]), range(cm.shape[1])):
-        plt.text(j, i, cm[i, j], horizontalalignment="center", color="white" if cm[i, j] > thresh else "black")
-
-    plt.tight_layout()
-    plt.ylabel("True label")
-    plt.xlabel("Predicted label")
-    plt.savefig(path)
+1
 
 
 def plot_confusion_matrix(y_true, y_pred, classes, path, normalize=False, title=None, cmap=plt.cm.Blues):
@@ -92,27 +65,28 @@ def plot_confusion_matrix(y_true, y_pred, classes, path, normalize=False, title=
             title = "Confusion matrix, without normalization"
 
     # Compute confusion matrix
-    cm = confusion_matrix(y_true, y_pred)
+    cm = confusion_matrix(y_true, y_pred, labels=range(len(classes)))
+    cm = np.nan_to_num(cm)
+
     # Only use the labels that appear in the data
     # classes = classes[unique_labels(y_true, y_pred)]
     if normalize:
         cm = cm.astype("float") / cm.sum(axis=1)[:, np.newaxis]
         print("Normalized confusion matrix")
     else:
-        print("Confusion matrix, without normalization")
-
-    print(cm)
+        print("Confusion matrix")
 
     cm = np.round(cm, 2).T
 
-    fig, ax = plt.subplots(figsize=(10, 10))
+    print(cm)
+
+    fig, ax = plt.subplots(figsize=(8, 8))
     im = ax.imshow(cm, interpolation="nearest", cmap=cmap)
     ax.figure.colorbar(im, ax=ax)
-    
+    # We want to show all ticks...
     ax.set(
         xticks=np.arange(cm.shape[1]),
         yticks=np.arange(cm.shape[0]),
-        # ... and label them with the respective list entries
         xticklabels=classes,
         yticklabels=classes,
         title=title,
@@ -120,21 +94,25 @@ def plot_confusion_matrix(y_true, y_pred, classes, path, normalize=False, title=
         xlabel="True",
     )
 
-    # Rotate y ticks
+    # Rotate the tick labels and set their alignment.
     plt.setp(ax.get_yticklabels(), rotation=90, ha="center", rotation_mode="anchor")
+    # plt.setp(ax.get_xticklabels(), rotation=45, ha="right", rotation_mode="anchor")
 
+    for edge, spine in ax.spines.items():
+        spine.set_visible(False)
+
+    # Loop over data dimensions and create text annotations.
     fmt = ".2f" if normalize else "d"
     thresh = cm.max() / 2.0
     for i in range(cm.shape[0]):
         for j in range(cm.shape[1]):
-            value = format(cm[i, j], fmt) if cm[i, j] != 0.00 else ''
-            ax.text(
-                j, i, value, ha="center", va="center", color="white" if cm[i, j] > thresh else "black"
-            )
+            value = format(cm[i, j], fmt) if cm[i, j] != 0.00 else ""
+            ax.text(j, i, value, ha="center", va="center", color="white" if cm[i, j] > thresh else "black")
     fig.tight_layout()
     plt.xlim(-0.5, len(np.unique(y_true)) - 0.5)
     plt.ylim(len(np.unique(y_true)) - 0.5, -0.5)
     plt.savefig(path)
+
 
 def get_args_parser():
     parser = argparse.ArgumentParser("Set transformer detector", add_help=False)
@@ -256,23 +234,25 @@ def infer(
     duration = 0
     for img_sample in images_path:
         filename = os.path.basename(img_sample)
-        print("processing...{}".format(filename))
+        print("Processing...{}".format(filename))
         orig_image = Image.open(img_sample)
         w, h = orig_image.size
 
         if json_path != "":
             labeled_img = next(item for item in labeled_data if item["data_row"]["external_id"] == filename)
-            aux_labels = labeled_img["projects"]["clcusoyxl0mic070f2k7p938p"]["labels"][0]["annotations"]["objects"]
+            proj_key = list(labeled_img["projects"].keys())[0]
+            aux_labels = labeled_img["projects"][proj_key]["labels"][0]["annotations"]["objects"]
             labels = []
             nombres = []
             for label in aux_labels:
-                if label["name"] not in ["Lin", "Cap"]:
+                if label["name"] not in ["seg_lin", "seg_veg", "Cap", "Aux"]:
                     if len(label["classifications"]) > 0:
                         nombre = label["name"] + "_" + label["classifications"][0]["radio_answer"]["name"]
                     else:
                         nombre = label["name"]
                     labels.append(label)
                     nombres.append(nombre)
+
             xmin = [x["bounding_box"]["left"] for x in labels]
             xmax = [x["bounding_box"]["left"] + x["bounding_box"]["width"] for x in labels]
             ymin = [x["bounding_box"]["top"] for x in labels]
@@ -366,7 +346,7 @@ def infer(
             bboxes_scaled = rescale_bboxes(bboxes_pre[indices], orig_image.size)
 
         else:
-            print(outputs["pred_boxes"][0, keep])
+            # print(outputs["pred_boxes"][0, keep])
             bboxes_scaled = rescale_bboxes(outputs["pred_boxes"][0, keep], orig_image.size)
             clases = clases_aux
             confidence = probas_aux
@@ -404,11 +384,11 @@ def infer(
             "GrB",
             "GrL",
             "GrT",
-            "PCo_X-uncertain",
             "PCo_Low-longitudinal",
             "PCo_Low-random",
             "PCo_Medium",
             "PCo_High",
+            "Pel",
             "background",
         ]
         numbers = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
@@ -447,7 +427,7 @@ def infer(
                 unions = union1 - intersections + union2
                 iou = list(intersections / unions)
                 if len(iou) == 0:
-                    clases_reales.append(10)
+                    clases_reales.append(9)
                     clases_predecidas.append(numbers[clase])
                 else:
                     indice_aux = iou.index(max(iou))
@@ -459,7 +439,7 @@ def infer(
                             indices_aux.remove(indice_aux)
 
                     else:
-                        clases_reales.append(10)
+                        clases_reales.append(9)
 
             bbox = np.array(
                 [
@@ -474,7 +454,7 @@ def infer(
 
         if json_path != "":
             for indice_aux in indices_aux:
-                clases_predecidas.append(10)
+                clases_predecidas.append(9)
                 clases_reales.append(numbers[names.index(categories_labeled[indice_aux])])
 
         if save_images == 1:
@@ -490,8 +470,6 @@ def infer(
     if output_path != "":
         myFile = open(os.path.join(output_path, "anotations.csv"), "w", newline="")
         writer = csv.writer(myFile, delimiter=";")
-        print(detecciones)
-        exit()
         writer.writerow(list(detecciones[0].keys()))
         for dictionary in detecciones:
             writer.writerow(dictionary.values())
@@ -515,11 +493,11 @@ def infer(
                     "GrB",
                     "GrL",
                     "GrT",
-                    "PCo_X-uncertain",
-                    "PCo_Low-longitudinal",
-                    "PCo_Low-random",
-                    "PCo_Medium",
-                    "PCo_High",
+                    "PCoLL",
+                    "PCoLR",
+                    "PCoM",
+                    "PCoH",
+                    "Pel",
                     "background",
                 ],
                 title="Normalized confusion matrix",
@@ -532,6 +510,15 @@ def infer(
 if __name__ == "__main__":
     parser = argparse.ArgumentParser("DETR training and evaluation script", parents=[get_args_parser()])
     args = parser.parse_args()
+
+    # args.resume = "/home/aguia/train_models/output_24-06-14/detr/checkpoint.pth"
+    # args.data_path = "/home/aguia/train_models/datasets/lbd_2406/images/val/"
+    # args.json_path = "/mnt/drive/datos/labeled_datasets/2405/recortes/labels.json"
+    # args.output_dir = "/home/aguia/train_models/output_24-06-14/detr/"
+    # args.device = "cuda"
+    # args.nms = 0
+    # args.iou_thresh = 0.4
+
     if args.output_dir:
         Path(args.output_dir).mkdir(parents=True, exist_ok=True)
 
