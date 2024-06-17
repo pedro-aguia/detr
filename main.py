@@ -8,6 +8,13 @@ from pathlib import Path
 
 import numpy as np
 import torch
+
+# Evitar memory leak
+# raise RuntimeError('received %d items of ancdata' %
+# RuntimeError: received 0 items of ancdata
+
+torch.multiprocessing.set_sharing_strategy("file_system")
+
 from torch.utils.data import DataLoader, DistributedSampler
 
 import datasets
